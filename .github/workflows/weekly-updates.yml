@@ -1,0 +1,56 @@
+name: "Weekly Updates"
+
+on:
+  workflow_call:
+    secrets:
+      REPO_TOKEN:
+        description: "GitHub token with repo permissions"
+        required: true
+  schedule:
+    # Run every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v5
+        with:
+          token: "${{ secrets.REPO_TOKEN }}"
+      
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+          install_url: https://releases.nixos.org/nix/nix-2.28.0/install
+      
+      - name: Set up Git
+        run: |
+          git config user.email gitbot@mox-desktop.dev
+          git config user.name "Git Bot"
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      
+      - name: Update dependencies
+        run: |
+          cargo update
+          nix flake update
+      
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes detected"
+            exit 0
+          fi
+          git add .
+          git commit -m "Weekly dependency updates: $(date '+%Y-%m-%d')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
