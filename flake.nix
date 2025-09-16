@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -17,6 +17,7 @@
         "x86_64-linux"
         "aarch64-linux"
       ];
+
       overlays = [
         (import rust-overlay)
         (self: super: {
@@ -28,6 +29,7 @@
           };
         })
       ];
+
       forAllSystems =
         f:
         nixpkgs.lib.genAttrs systems (
@@ -37,6 +39,7 @@
           in
           f pkgs
         );
+
       formatter = forAllSystems (
         pkgs:
         pkgs.writeShellApplication {
